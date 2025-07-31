@@ -1,4 +1,6 @@
 # .gitignore
 .env
-venv/
+static/uploads/*
 __pycache__/
+*.pyc
+venv/
