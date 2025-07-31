@@ -64,3 +64,16 @@ def upload_file():
 if __name__ == '__main__':
     os.makedirs(os.path.join('static', 'uploads'), exist_ok=True)
     app.run(debug=True)
+
+from flask import Flask
+from dotenv import load_dotenv  # Añade esto al inicio
+import os
+
+# Cargar variables del .env
+load_dotenv()
+
+app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY', 'clave_por_defecto')  # Ejemplo de variable
+
+# Acceder a la clave de iNaturalist (si existe)
+INATURALIST_KEY = os.getenv('INATURALIST_API_KEY')
