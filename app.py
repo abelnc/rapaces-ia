@@ -1,3 +1,32 @@
+# Añadir al inicio (junto a otros imports)
+import logging
+logging.basicConfig(level=logging.INFO)
+
+# Modificar la función call_inaturalist_api
+def call_inaturalist_api(image_path):
+    try:
+        url = "https://api.inaturalist.org/v1/identifications"
+        headers = {'User-Agent': 'RapacesIA/1.0 (tu@email.com)'}  # Identificación requerida
+        files = {'file': open(image_path, 'rb')}
+        
+        response = requests.post(url, files=files, headers=headers, timeout=10)
+        response.raise_for_status()  # Lanza error si HTTP != 200
+        
+        data = response.json()
+        if not data.get('results'):
+            logging.warning("API no devolvió resultados")
+            return None
+            
+        best_match = data['results'][0]['taxon']
+        return {
+            'common_name': best_match.get('preferred_common_name', 'Desconocido'),
+            'scientific_name': best_match.get('name', 'No identificado'),
+            'confidence': round(best_match.get('score', 0) * 100, 2)
+        }
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error en API: {e}")
+        return None
+
 import os
 from flask import Flask, render_template, request, flash, redirect, url_for
 from werkzeug.utils import secure_filename
