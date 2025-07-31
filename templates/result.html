@@ -1,12 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta charset="UTF-8">
     <title>Resultado</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .result-card { background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px; }
+        .scientific-name { font-style: italic; color: #555; }
+        .confidence { font-weight: bold; color: #27ae60; }
+        a { color: #3498db; text-decoration: none; }
+    </style>
 </head>
 <body>
-    <h1>Resultado de identificación</h1>
-    <p><strong>Especie:</strong> {{ name }} (<i>{{ scientific_name }}</i>)</p>
-    <p><strong>Confianza:</strong> {{ confidence }}%</p>
+    <h1>Resultado de Identificación</h1>
+    
+    <div class="result-card">
+        <h2>{{ name }}</h2>
+        <p class="scientific-name">{{ scientific_name }}</p>
+        <p>Confianza: <span class="confidence">{{ confidence }}%</span></p>
+        
+        <h3>¿Es correcto?</h3>
+        <p>
+            <a href="https://search.macaulaylibrary.org/catalog?taxonCode={{ scientific_name.split(' ')[0] }}" target="_blank">
+                Ver fotos de referencia
+            </a>
+        </p>
+        
+        <a href="/">&larr; Volver</a>
+    </div>
+</body>
+</html>
     
     <!-- Enlace a Macaulay Library para fotos comparativas -->
     <h3>Fotos de referencia:</h3>
