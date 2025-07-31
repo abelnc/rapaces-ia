@@ -1,13 +1,34 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Identificador de Rapaces</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        h1 { color: #2c3e50; }
+        .alert { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        form { margin-top: 20px; }
+        button { background-color: #3498db; color: white; border: none; padding: 10px 15px; cursor: pointer; }
+    </style>
 </head>
 <body>
-    <h1>Sube una foto de un ave rapaz</h1>
+    <h1>Identificador de Rapaces Ibéricas 🦅</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
     <form method="post" enctype="multipart/form-data">
         <input type="file" name="file" accept="image/*" required>
         <button type="submit">Identificar</button>
     </form>
+    
+    <p><small>Sube una foto clara del ave (formato JPG/PNG)</small></p>
 </body>
 </html>
