@@ -1,2 +1,4 @@
-# rapaces-ia
-Aplicación de IA para identificar rapaces ibéricas
+## 🛠️ Configuración Local
+1. Clona el repositorio:
+   ```bash
+   git clone https://github.com/abelnc/rapaces-ia.git
