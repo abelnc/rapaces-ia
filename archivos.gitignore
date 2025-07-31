@@ -1,0 +1,3 @@
+# .env
+INATURALIST_API_KEY=                # (Deja vacío si usas la API pública)
+DEBUG=True                          # Para desarrollo
