@@ -4,8 +4,16 @@
     <title>Resultado</title>
 </head>
 <body>
-    <h1>Resultado:</h1>
-    <p>Es un <strong>{{ species }}</strong> con un {{ confidence }}% de probabilidad.</p>
+    <h1>Resultado de identificación</h1>
+    <p><strong>Especie:</strong> {{ name }} (<i>{{ scientific_name }}</i>)</p>
+    <p><strong>Confianza:</strong> {{ confidence }}%</p>
+    
+    <!-- Enlace a Macaulay Library para fotos comparativas -->
+    <h3>Fotos de referencia:</h3>
+    <a href="https://search.macaulaylibrary.org/catalog?taxonCode={{ scientific_name.split(' ')[0] }}" target="_blank">
+        Ver en Macaulay Library
+    </a>
+    
     <a href="/">Volver</a>
 </body>
 </html>
