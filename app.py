@@ -1,79 +1,77 @@
-from flask import Flask, render_template, request, flash
-import requests
 import os
+from flask import Flask, render_template, request, flash, redirect, url_for
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+import requests
 
+# Configuración inicial
+load_dotenv()
 app = Flask(__name__)
-app.secret_key = 'tu_clave_secreta_aqui'
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'una-clave-secreta-por-defecto')
 
+# Configuración de archivos
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+UPLOAD_FOLDER = 'static/uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def identify_species(image_path):
-    """Envía la imagen a iNaturalist y devuelve el resultado."""
+def call_inaturalist_api(image_path):
+    """Función para llamar a la API de iNaturalist"""
     try:
         url = "https://api.inaturalist.org/v1/identifications"
         files = {'file': open(image_path, 'rb')}
-        response = requests.post(url, files=files)
+        headers = {'Authorization': f'Bearer {os.getenv("INATURALIST_API_KEY")}'} if os.getenv("INATURALIST_API_KEY") else {}
         
-        if response.status_code == 200:
-            data = response.json()
-            # Extrae la especie más probable (ejemplo simplificado)
-            top_result = data['results'][0]['taxon']
+        response = requests.post(url, files=files, headers=headers)
+        response.raise_for_status()
+        
+        data = response.json()
+        if data['results']:
+            best_match = data['results'][0]['taxon']
             return {
-                'name': top_result['preferred_common_name'],
-                'scientific_name': top_result['name'],
-                'confidence': top_result['score'] * 100  # Convertir a porcentaje
+                'common_name': best_match.get('preferred_common_name', 'Desconocido'),
+                'scientific_name': best_match.get('name', 'No identificado'),
+                'confidence': round(best_match.get('score', 0) * 100, 2)
             }
-        else:
-            return None
     except Exception as e:
-        print("Error calling iNaturalist API:", e)
-        return None
+        print(f"API Error: {e}")
+    return None
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
+        # Verificar si se subió archivo
         if 'file' not in request.files:
-            flash('No se seleccionó ningún archivo')
-            return render_template('index.html')
-        
+            flash('No se seleccionó ningún archivo', 'error')
+            return redirect(request.url)
+            
         file = request.files['file']
-        if file.filename == '':
-            flash('Archivo no válido')
-            return render_template('index.html')
         
+        # Validar archivo
+        if file.filename == '':
+            flash('Archivo no válido', 'error')
+            return redirect(request.url)
+            
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            temp_path = os.path.join('static', 'uploads', filename)
-            file.save(temp_path)
+            save_path = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(save_path)
             
-            result = identify_species(temp_path)
-            if result:
+            # Llamar a la API
+            api_result = call_inaturalist_api(save_path)
+            
+            if api_result:
                 return render_template('result.html', 
-                                    name=result['name'],
-                                    scientific_name=result['scientific_name'],
-                                    confidence=result['confidence'])
+                                    name=api_result['common_name'],
+                                    scientific_name=api_result['scientific_name'],
+                                    confidence=api_result['confidence'])
             else:
-                flash('Error al identificar la especie')
+                flash('Error al identificar la especie. Intenta con otra imagen.', 'error')
     
     return render_template('index.html')
 
 if __name__ == '__main__':
-    os.makedirs(os.path.join('static', 'uploads'), exist_ok=True)
-    app.run(debug=True)
-
-from flask import Flask
-from dotenv import load_dotenv  # Añade esto al inicio
-import os
-
-# Cargar variables del .env
-load_dotenv()
-
-app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'clave_por_defecto')  # Ejemplo de variable
-
-# Acceder a la clave de iNaturalist (si existe)
-INATURALIST_KEY = os.getenv('INATURALIST_API_KEY')
+    app.run(debug=os.getenv('DEBUG', 'True') == 'True')
