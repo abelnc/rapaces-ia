@@ -1,3 +1,32 @@
+# Añadir al inicio (junto a otros imports)
+import logging
+logging.basicConfig(level=logging.INFO)
+
+# Modificar la función call_inaturalist_api
+def call_inaturalist_api(image_path):
+    try:
+        url = "https://api.inaturalist.org/v1/identifications"
+        headers = {'User-Agent': 'RapacesIA/1.0 (tu@email.com)'}  # Identificación requerida
+        files = {'file': open(image_path, 'rb')}
+        
+        response = requests.post(url, files=files, headers=headers, timeout=10)
+        response.raise_for_status()  # Lanza error si HTTP != 200
+        
+        data = response.json()
+        if not data.get('results'):
+            logging.warning("API no devolvió resultados")
+            return None
+            
+        best_match = data['results'][0]['taxon']
+        return {
+            'common_name': best_match.get('preferred_common_name', 'Desconocido'),
+            'scientific_name': best_match.get('name', 'No identificado'),
+            'confidence': round(best_match.get('score', 0) * 100, 2)
+        }
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error en API: {e}")
+        return None
+
 import os
 from flask import Flask, render_template, request, flash, redirect, url_for
 from werkzeug.utils import secure_filename
@@ -75,3 +104,69 @@ def upload_file():
 
 if __name__ == '__main__':
     app.run(debug=os.getenv('DEBUG', 'True') == 'True')
+
+@"
+import os
+from flask import Flask, render_template, request, flash, redirect
+from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+import requests
+import logging
+
+# Configuración inicial
+load_dotenv()
+app = Flask(__name__)
+app.secret_key = os.getenv('FLASK_SECRET_KEY')
+
+# Logger
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    filename='app.log'
+)
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+UPLOAD_FOLDER = 'static/uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        try:
+            if 'file' not in request.files:
+                flash('No se seleccionó ningún archivo', 'error')
+                return redirect(request.url)
+                
+            file = request.files['file']
+            
+            if file.filename == '':
+                flash('Archivo no válido', 'error')
+                return redirect(request.url)
+                
+            if not allowed_file(file.filename):
+                flash('Formato no soportado. Use JPG/PNG', 'error')
+                return redirect(request.url)
+                
+            filename = secure_filename(file.filename)
+            save_path = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(save_path)
+            
+            # Aquí iría la llamada a la API
+            return render_template('result.html', 
+                                name="Águila de prueba",
+                                confidence=95.0)
+                                
+        except Exception as e:
+            logging.error(f"Error en upload_file: {str(e)}")
+            flash('Error interno del servidor', 'error')
+            return redirect(request.url)
+    
+    return render_template('index.html')
+
+if __name__ == '__main__':
+    app.run(debug=os.getenv('DEBUG', 'True') == 'True')
+"@ | Out-File -FilePath "app.py" -Encoding utf8
