@@ -15,7 +15,9 @@
     <h1>Resultado de Identificación</h1>
     
     <div class="result-card">
-        <h2>{{ name }}</h2>
+        <h2 class="species-name">{{ name }}</h2>
+    <p>Confianza: <span class="confidence-badge">{{ confidence }}</span></p>
+    <a href="/" class="back-button">← Volver a intentar</a>
         <p class="scientific-name">{{ scientific_name }}</p>
         <p>Confianza: <span class="confidence">{{ confidence }}%</span></p>
         
