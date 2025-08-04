@@ -18,28 +18,6 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def call_inaturalist_api(image_path):
-    """Función para llamar a la API de iNaturalist"""
-    try:
-        url = "https://api.inaturalist.org/v1/identifications"
-        files = {'file': open(image_path, 'rb')}
-        headers = {'Authorization': f'Bearer {os.getenv("INATURALIST_API_KEY")}'} if os.getenv("INATURALIST_API_KEY") else {}
-        
-        response = requests.post(url, files=files, headers=headers)
-        response.raise_for_status()
-        
-        data = response.json()
-        if data['results']:
-            best_match = data['results'][0]['taxon']
-            return {
-                'common_name': best_match.get('preferred_common_name', 'Desconocido'),
-                'scientific_name': best_match.get('name', 'No identificado'),
-                'confidence': round(best_match.get('score', 0) * 100, 2)
-            }
-    except Exception as e:
-        print(f"API Error: {e}")
-    return None
-
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
@@ -60,25 +38,40 @@ def upload_file():
             save_path = os.path.join(UPLOAD_FOLDER, filename)
             file.save(save_path)
             
-            # Llamar a la API
-           try:
-    # Configuración de la API
-    api_url = "https://api.inaturalist.org/v1/identifications"
-    headers = {'User-Agent': 'RapacesIA/1.0 (contacto@tudominio.com)'}
+            # Llamar a la API CORRECTA de iNaturalist
+            try:
+                api_url = "https://api.inaturalist.org/v1/identifications"
+                headers = {'User-Agent': 'RapacesIA/1.0 (contacto@tudominio.com)'}
+                
+                # Debes usar el endpoint correcto para identificación de imágenes
+                response = requests.post(
+                    "https://api.inaturalist.org/v1/computervision/identify",
+                    files={'file': open(save_path, 'rb')},
+                    headers=headers
+                )
+                
+                if response.status_code != 200:
+                    flash('Error al conectar con el servicio de identificación', 'error')
+                    return redirect(request.url)
+                
+                data = response.json()
+                
+                if data.get('results'):
+                    best_result = data['results'][0]
+                    return render_template('result.html',
+                        name=best_result.get('common_name', 'Desconocido'),
+                        confidence=f"{best_result.get('score', 0)*100:.1f}%"
+                    )
+                else:
+                    flash('No se pudo identificar el ave en la imagen', 'error')
+                    return redirect(request.url)
+                    
+            except Exception as e:
+                print(f"Error con la API: {str(e)}")
+                flash('Error al procesar la imagen. Intenta nuevamente.', 'error')
+                return redirect(request.url)
     
-    # Envía la imagen
-    response = requests.post(api_url, 
-                           files={'file': open(save_path, 'rb')},
-                           headers=headers)
-    data = response.json()
-    
-    # Procesa la respuesta
-    if data['results']:
-        best_result = data['results'][0]['taxon']
-        return render_template('result.html',
-            name=best_result.get('preferred_common_name', 'Desconocido'),
-            confidence=str(round(best_result.get('score', 0) * 100) + '%'
-        )
-except Exception as e:
-    print("Error con la API:", str(e))
-    flash('No se pudo identificar el ave. Intenta con otra foto.', 'error')
+    return render_template('index.html')
+
+if __name__ == '__main__':
+    app.run(debug=os.getenv('DEBUG', 'True') == 'True')
